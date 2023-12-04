@@ -3,13 +3,12 @@ from scipy.linalg import norm
 import dataload.dataloadv4 as dl
 from pykalman import KalmanFilter
 
-def slide_windows(data, tstep=10, overlap=0.5):
+def slide_windows(data, window_size=10, stride=5):
     seqs = []
     lendata = len(data[0])
-    move = int((1 - overlap) * tstep)
     # use slide windows
-    for i in range(0, lendata - tstep + 1, move):
-        seq = data[:, i:i+tstep, :, :]
+    for i in range(0, lendata - window_size + 1, stride):
+        seq = data[:, i:i+window_size, :, :]
         seqs.append(seq)
     return seqs
 
@@ -51,9 +50,7 @@ def kalman_filter_iterative(data):
                         if t == 0:
                             kf = kf.em(observation)
                         else:
-                            (filtered_state_means, _) = kf.filter_update(
-                                filtered_state_means[-1], kf.transition_matrix, observation
-                            )
+                            (filtered_state_means, _) = kf.filter_update(filtered_state_means[-1], kf.transition_matrix, observation)
                             kf = kf.filter_update(filtered_state_means[-1], kf.transition_matrix, observation)
 
                         filtered_data[i, t, j, k, channel] = filtered_state_means.flatten()
@@ -62,45 +59,45 @@ def kalman_filter_iterative(data):
 
 kalman_filter = kalman_filter_iterative
 
-def load_xy(datasets, idr, window_size, overlap, normalparam):
-    samples = np.array([]).reshape(0, 3, window_size, 256, 256)
-    for id in idr:
-        samples = np.concatenate((samples, np.array(slide_windows(np.array(datasets[id]), window_size, overlap=0.88))), axis=0)
-    samples = samples.swapaxes(1, 2)
-    samples = samples.swapaxes(2, 3)
-    samples = samples.swapaxes(3, 4)
+def load_xy(datasets, sample_dir_size, normalparam, split_ratio=0.8, window_size=10, stride=5):
+    feature_num = len(normalparam)
+    samples = np.array([]).reshape(0, feature_num, window_size, 256, 256)
+    
+    for id in range(sample_dir_size):
+        samples = np.concatenate((samples, np.array(slide_windows(np.array(datasets[id]), window_size, stride))), axis=0)
+    
+    for x in range(feature_num):
+        samples = samples.swapaxes(x+1, x+2)
     
     # normalization 
-    for x in range(3):
+    for x in range(feature_num):
         mmin, mmax = normalparam[x]
         samples[:, :, :, :, x] = (samples[:, :, :, :, x] - mmin) / (mmax - mmin)
     
     # make X and y
-    stride = int(window_size * (1 - overlap))
     X = samples[:-window_size, :, :, :, :]
     y = samples[window_size:, :, :, :, 0:1]
     
     # split train and test
-    split_ratio = 0.8
     X_train, X_test, y_train, y_test = split_dataset(X, y, split_ratio)
     
     print(f'X_train.shape: {X_train.shape}')
-    print(f'X_test.shape: {X_test.shape}')
+    print(f'X_test.shape:  {X_test.shape}')
     print(f'y_train.shape: {y_train.shape}')
-    print(f'y_test.shape: {y_test.shape}')
+    print(f'y_test.shape:  {y_test.shape}')
     return X_train, X_test, y_train, y_test
 
 
 
-
-# Load the data
-main_dir = '/root/CodeHub/py/radar-pol-wforcast/.data/new_2308_1'
-altitude = '1.0km'
-datasets = dl.load_data(main_dir, altitude)
-norm_param = ([0, 65], [-1, 5], [-1, 6])  # dBZ: [0, 65], ZDR: [-1, 5], KDP: [-1, 6]
+normalparam = ([0, 65], [-1, 5], [-1, 6])  # dBZ: [0, 65], ZDR: [-1, 5], KDP: [-1, 6]
 
 if __name__ == '__main__':
-    load_xy(datasets, range(5), 10, 0.88, norm_param)
+    # Load the data
+    main_dir = '/root/CodeHub/py/radar-pol-wforcast/.data/new_2308_1'
+    altitude = '1.0km'
+    datasets = dl.load_data(main_dir, altitude, maxsize=5)
+    print(np.array(datasets[0]).shape)
+    load_xy(datasets, sample_dir_size=1, normalparam=normalparam, split_ratio=0.8, window_size=10, stride=1)
 else:
     pass
 

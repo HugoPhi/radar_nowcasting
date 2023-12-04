@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-def load_data(main_dir, altitude):
+def load_data(main_dir, altitude, maxsize=1, features=('dBZ', 'ZDR', 'KDP')):
     main_dir = main_dir  # root directory of the dataset
     target_altitude = altitude  # target altitude
     
@@ -13,9 +13,13 @@ def load_data(main_dir, altitude):
         temp[variable] = []
         variable_dir = os.path.join(main_dir, variable, target_altitude)
         
-        num = len(os.listdir(variable_dir))  # number of datasets
+        it = 0
+        num = min(maxsize, len(os.listdir(variable_dir)))  # number of datasets
         for data_dir in os.listdir(variable_dir):
             data_dir_path = os.path.join(variable_dir, data_dir)
+            it += 1
+            if it > num:
+                break
             
             frames = []  # read all frames 
             for frame_file in os.listdir(data_dir_path):
@@ -30,14 +34,14 @@ def load_data(main_dir, altitude):
     
     for x in range(num):
         # datasets[x] = np.array([temp[y][num - x - 1] for y in ('dBZ', 'ZDR', 'KDP')])
-        datasets[x] = [temp[y][num - x - 1] for y in ('dBZ', 'ZDR', 'KDP')]
+        datasets[x] = [temp[y][num - x - 1] for y in features]
     
     return datasets  # (frame_number, features, frames, 256, 256), features: dBZ -> 0, ZDR -> 1, KDP -> 2 
 
 if __name__ == '__main__':
     dir = '/root/CodeHub/py/radar-pol-wforcast/.data/new_2308_1'
 
-    datasets = load_data(dir, '1.0km')
+    datasets = load_data(dir, '7.0km', 3, ('dBZ', 'ZDR', 'KDP'))
     for x in range(len(datasets)):
         print(f'dataset {x} --> {np.array(datasets[x]).shape}')
 else:
