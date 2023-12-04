@@ -127,4 +127,3 @@ plt.show()
 
 # Save the model
 model.save('.model/convlstm_model.h5')
-
