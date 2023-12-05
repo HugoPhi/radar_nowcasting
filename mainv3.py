@@ -98,75 +98,42 @@ with open(f'.model/model_{datetime.datetime}/history.json', 'w') as f:
     json.dump(history.history, f)
 
 ## draw pictures 
-train_loss_list = []
-train_acc_list = []
-val_loss_list = []
-val_acc_list = []
+epochs = param['epochs']
+train_loss = history.history['loss']
+test_loss = history.history['val_loss']
+train_accuracy = history.history['accuracy']
+test_accuracy = history.history['val_accuracy']
 
-for epoch in range(1, param['epochs'] + 1):
-    print(f"Epoch {epoch}/{param['epochs']}")
-    
-    # Training
-    train_metrics = model.fit(X_train_convlstm, y_train_target, batch_size=param['batch_size'], epochs=1, verbose='0')
-    train_loss_list.extend(train_metrics.history['loss'])
-    train_acc_list.extend(train_metrics.history['accuracy'])
 
-    # Validation
-    val_metrics = model.evaluate(X_test_convlstm, y_test_target, verbose='0')
-    val_loss_list.append(val_metrics[0])
-    val_acc_list.append(val_metrics[1])
+### create directory 
+if not os.path.exists(f'.model/model_{datetime.datetime}/figures'):
+    os.makedirs(f'.model/model_{datetime.datetime}/figures')
 
-    # Plot metrics after each batch
-    plt.figure(figsize=(12, 6))
-
-    # Plot training loss
-    plt.subplot(1, 2, 1)
-    plt.plot(train_loss_list, 'bo-', label='Training Loss')
-    plt.title('Training Loss')
-    plt.xlabel('Batch')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    # Plot training accuracy
-    plt.subplot(1, 2, 2)
-    plt.plot(train_acc_list, 'bo-', label='Training Accuracy')
-    plt.title('Training Accuracy')
-    plt.xlabel('Batch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
-    plt.tight_layout()
-
-    # Save the figure for each batch
-    save_dir = 'path_to_save_figures'
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-
-    plt.savefig(os.path.join(save_dir, f'batch_metrics_epoch_{epoch}.png'))
-
-### Plot overall metrics after each epoch
-plt.figure(figsize=(12, 6))
-
-### Plot training loss
-plt.subplot(1, 2, 1)
-plt.plot(train_loss_list, 'bo-', label='Training Loss')
-plt.title('Training Loss')
-plt.xlabel('Batch')
+### loss vs epoch 
+plt.figure(1)
+plt.plot(epochs, train_loss, 'orange', label='Train Loss')
+plt.plot(epochs, test_loss, 'green', label='Test Loss')
+plt.title('Loss vs Epoch')
+plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.legend()
+plt.grid(True)
+plt.savefig(f'.model/model_{datetime.datetime}/figures/accuracy_vs_epoch.png')
 
-### Plot training accuracy
-plt.subplot(1, 2, 2)
-plt.plot(train_acc_list, 'bo-', label='Training Accuracy')
-plt.title('Training Accuracy')
-plt.xlabel('Batch')
+### accuracy vs epoch
+plt.figure(2)
+plt.plot(epochs, train_accuracy, 'orange', label='Train Accuracy')
+plt.plot(epochs, test_accuracy, 'green', label='Test Accuracy')
+plt.title('Accuracy vs Epoch')
+plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
+plt.grid(True)
+plt.savefig(f'.model/model_{datetime.datetime}/figures/accuracy_vs_epoch.png')
 
-plt.tight_layout()
+### show plot
+plt.show()
 
-# Save the figure for overall metrics
-plt.savefig(os.path.join(f'.model/model_{datetime.datetime}', 'overall_metrics.png'))
 
 ## Save the model according to the parameters and date
 model.save(f'.model/model_{datetime.datetime}/model.h5')
